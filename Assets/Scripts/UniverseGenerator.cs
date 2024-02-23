@@ -2,20 +2,27 @@ using UnityEngine;
 
 public class UniverseGenerator : MonoBehaviour
 {
-    public GameObject galaxyParent;
-    public GameObject starParent;
-    public GameObject planetParent;
+    [Header("Parent Objects")]
+    [HideInInspector][SerializeField] private GameObject galaxyParent;
+    [HideInInspector][SerializeField] private GameObject starParent;
+    [HideInInspector][SerializeField] private GameObject planetParent;
+
+    [Header("Prefabs")]
     public GameObject[] starPrefabs;
     public GameObject[] planetPrefabs;
-    public int minStars = 50;
-    public int maxStars = 100;
-    public int minPlanets = 100;
-    public int maxPlanets = 200;
-    public float minStarDistance = 20f;
-    public float maxStarDistance = 50f;
-    public float minPlanetDistance = 20f;
-    public float maxPlanetDistance = 50f;
-    public float environmentRadius = 1000f;
+
+    [Header("Star Settings")]
+    [SerializeField] private int minStars = 50;
+    [SerializeField] private int maxStars = 100;
+    [SerializeField] private float maxStarDistance = 50f;
+    [SerializeField] private float minStarDistance = 20f;
+
+    [Header("Planet Settings")]
+    [SerializeField] private int minPlanets = 100;
+    [SerializeField] private int maxPlanets = 200;
+    [SerializeField] private float minPlanetDistance = 20f;
+    [SerializeField] private float maxPlanetDistance = 50f;
+    [SerializeField] private float environmentRadius = 1000f;
 
     void Start()
     {
@@ -28,9 +35,10 @@ public class UniverseGenerator : MonoBehaviour
         GeneratePlanets();
     }
 
+    // Generate stars
     void GenerateStars()
     {
-        starParent.transform.parent = galaxyParent.transform; // Set star parent as child of galaxy parent
+        starParent.transform.parent = galaxyParent.transform;
 
         int numberOfStars = Random.Range(minStars, maxStars + 1);
         for (int i = 0; i < numberOfStars; i++)
@@ -39,21 +47,21 @@ public class UniverseGenerator : MonoBehaviour
             Vector3 position = GetRandomPosition(minStarDistance, maxStarDistance);
             GameObject star = Instantiate(starPrefab, position, Quaternion.identity);
 
-            // Check for overlap with other stars and planets
             if (!CheckOverlap(star, starParent.transform))
             {
-                star.transform.parent = starParent.transform; // Set star as child of star parent
+                star.transform.parent = starParent.transform;
             }
             else
             {
-                Destroy(star); // Destroy star if it overlaps with other objects
+                Destroy(star);
             }
         }
     }
 
+    // Generate planets
     void GeneratePlanets()
     {
-        planetParent.transform.parent = galaxyParent.transform; // Set planet parent as child of galaxy parent
+        planetParent.transform.parent = galaxyParent.transform;
 
         int numberOfPlanets = Random.Range(minPlanets, maxPlanets + 1);
         for (int i = 0; i < numberOfPlanets; i++)
@@ -62,18 +70,18 @@ public class UniverseGenerator : MonoBehaviour
             Vector3 position = GetRandomPosition(minPlanetDistance, maxPlanetDistance);
             GameObject planet = Instantiate(planetPrefab, position, Quaternion.identity);
 
-            // Check for overlap with other stars, planets, and galaxies
             if (!CheckOverlap(planet, starParent.transform) && !CheckOverlap(planet, planetParent.transform) && !CheckOverlap(planet, galaxyParent.transform))
             {
-                planet.transform.parent = planetParent.transform; // Set planet as child of planet parent
+                planet.transform.parent = planetParent.transform;
             }
             else
             {
-                Destroy(planet); // Destroy planet if it overlaps with other objects
+                Destroy(planet);
             }
         }
     }
 
+    // Get random position
     Vector3 GetRandomPosition(float minDistance, float maxDistance)
     {
         Vector3 randomDirection = Random.insideUnitSphere.normalized;
@@ -81,6 +89,7 @@ public class UniverseGenerator : MonoBehaviour
         return randomPosition;
     }
 
+    // Check overlap
     bool CheckOverlap(GameObject obj, Transform parent)
     {
         Collider[] colliders = Physics.OverlapSphere(obj.transform.position, 1f);
@@ -89,13 +98,14 @@ public class UniverseGenerator : MonoBehaviour
         {
             if (collider.transform.parent == parent)
             {
-                return true; // Overlap detected with objects in the same parent
+                return true;
             }
         }
 
-        return false; // No overlap detected
+        return false;
     }
 
+    // Draw environment radius in the editor
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.blue;
