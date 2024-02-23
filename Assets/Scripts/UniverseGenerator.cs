@@ -1,90 +1,104 @@
 using UnityEngine;
-using System.Collections.Generic;
 
 public class UniverseGenerator : MonoBehaviour
 {
-    public GameObject starPrefab;
-    public GameObject planetPrefab;
-    public int initialStarPoolSize = 50;
-    public int initialPlanetPoolSize = 100;
-    public float spawnDistance = 200f;
-    public float despawnDistance = 250f;
-
-    private Transform player;
-    private List<GameObject> starPool = new List<GameObject>();
-    private List<GameObject> planetPool = new List<GameObject>();
+    public GameObject galaxyParent;
+    public GameObject starParent;
+    public GameObject planetParent;
+    public GameObject[] starPrefabs;
+    public GameObject[] planetPrefabs;
+    public int minStars = 50;
+    public int maxStars = 100;
+    public int minPlanets = 100;
+    public int maxPlanets = 200;
+    public float minStarDistance = 20f;
+    public float maxStarDistance = 50f;
+    public float minPlanetDistance = 20f;
+    public float maxPlanetDistance = 50f;
+    public float environmentRadius = 1000f;
 
     void Start()
     {
-        player = Camera.main.transform;
-        InitializePool();
+        // Create parent objects for stars, planets, and galaxies
+        galaxyParent = new GameObject("Galaxy");
+        starParent = new GameObject("Stars");
+        planetParent = new GameObject("Planets");
+
+        GenerateStars();
+        GeneratePlanets();
     }
 
-    void Update()
+    void GenerateStars()
     {
-        RecycleObjects();
-        SpawnObjects();
-    }
+        starParent.transform.parent = galaxyParent.transform; // Set star parent as child of galaxy parent
 
-    void InitializePool()
-    {
-        for (int i = 0; i < initialStarPoolSize; i++)
+        int numberOfStars = Random.Range(minStars, maxStars + 1);
+        for (int i = 0; i < numberOfStars; i++)
         {
-            GameObject star = Instantiate(starPrefab, RandomPosition(), Quaternion.identity);
-            star.SetActive(false);
-            starPool.Add(star);
-        }
+            GameObject starPrefab = starPrefabs[Random.Range(0, starPrefabs.Length)];
+            Vector3 position = GetRandomPosition(minStarDistance, maxStarDistance);
+            GameObject star = Instantiate(starPrefab, position, Quaternion.identity);
 
-        for (int i = 0; i < initialPlanetPoolSize; i++)
-        {
-            GameObject planet = Instantiate(planetPrefab, RandomPosition(), Quaternion.identity);
-            planet.SetActive(false);
-            planetPool.Add(planet);
-        }
-    }
-
-    void RecycleObjects()
-    {
-        foreach (GameObject star in starPool)
-        {
-            if (Vector3.Distance(star.transform.position, player.position) > despawnDistance)
+            // Check for overlap with other stars and planets
+            if (!CheckOverlap(star, starParent.transform))
             {
-                star.SetActive(false);
-                star.transform.position = RandomPosition();
+                star.transform.parent = starParent.transform; // Set star as child of star parent
             }
-        }
-
-        foreach (GameObject planet in planetPool)
-        {
-            if (Vector3.Distance(planet.transform.position, player.position) > despawnDistance)
+            else
             {
-                planet.SetActive(false);
-                planet.transform.position = RandomPosition();
+                Destroy(star); // Destroy star if it overlaps with other objects
             }
         }
     }
 
-    void SpawnObjects()
+    void GeneratePlanets()
     {
-        foreach (GameObject star in starPool)
-        {
-            if (!star.activeSelf && Vector3.Distance(star.transform.position, player.position) < spawnDistance)
-            {
-                star.SetActive(true);
-            }
-        }
+        planetParent.transform.parent = galaxyParent.transform; // Set planet parent as child of galaxy parent
 
-        foreach (GameObject planet in planetPool)
+        int numberOfPlanets = Random.Range(minPlanets, maxPlanets + 1);
+        for (int i = 0; i < numberOfPlanets; i++)
         {
-            if (!planet.activeSelf && Vector3.Distance(planet.transform.position, player.position) < spawnDistance)
+            GameObject planetPrefab = planetPrefabs[Random.Range(0, planetPrefabs.Length)];
+            Vector3 position = GetRandomPosition(minPlanetDistance, maxPlanetDistance);
+            GameObject planet = Instantiate(planetPrefab, position, Quaternion.identity);
+
+            // Check for overlap with other stars, planets, and galaxies
+            if (!CheckOverlap(planet, starParent.transform) && !CheckOverlap(planet, planetParent.transform) && !CheckOverlap(planet, galaxyParent.transform))
             {
-                planet.SetActive(true);
+                planet.transform.parent = planetParent.transform; // Set planet as child of planet parent
+            }
+            else
+            {
+                Destroy(planet); // Destroy planet if it overlaps with other objects
             }
         }
     }
 
-    Vector3 RandomPosition()
+    Vector3 GetRandomPosition(float minDistance, float maxDistance)
     {
-        return player.position + Random.onUnitSphere * Random.Range(spawnDistance, despawnDistance);
+        Vector3 randomDirection = Random.insideUnitSphere.normalized;
+        Vector3 randomPosition = transform.position + randomDirection * Random.Range(minDistance, maxDistance);
+        return randomPosition;
+    }
+
+    bool CheckOverlap(GameObject obj, Transform parent)
+    {
+        Collider[] colliders = Physics.OverlapSphere(obj.transform.position, 1f);
+
+        foreach (Collider collider in colliders)
+        {
+            if (collider.transform.parent == parent)
+            {
+                return true; // Overlap detected with objects in the same parent
+            }
+        }
+
+        return false; // No overlap detected
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireSphere(transform.position, environmentRadius);
     }
 }
